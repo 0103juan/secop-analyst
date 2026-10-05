@@ -140,7 +140,8 @@ of one question, not a lasting fact about the user, which is what the prompt ask
   duplicates a fact; it does not lose one.
 - **The Kubernetes setup is for a local cluster.** Postgres is a single pod with a volume, Redis has no
   persistence, Jaeger keeps traces in memory, and there is no ingress, autoscaling or network policy. The
-  infrastructure for a cloud is in a separate repository, and has not been applied.
+  infrastructure for a cloud is in [terraform-aws-platform](https://github.com/0103juan/terraform-aws-platform),
+  and has not been applied.
 - **Traces only.** No metrics and no log correlation.
 - Runs on Linux containers. On Windows the tests run natively; the service does not, because of the event loop
   psycopg's async mode needs.
