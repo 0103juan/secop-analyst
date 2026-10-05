@@ -28,7 +28,8 @@ def setup(app=None) -> None:
     PsycopgInstrumentor().instrument()
     RedisInstrumentor().instrument()
     if app:
-        FastAPIInstrumentor.instrument_app(app, excluded_urls="healthz,readyz")
+        # Without the ASGI send and receive spans: a streamed answer would add one per chunk, hundreds per request.
+        FastAPIInstrumentor.instrument_app(app, excluded_urls="healthz,readyz", exclude_spans=["send", "receive"])
 
 
 def span(name: str, **attributes):

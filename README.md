@@ -87,7 +87,7 @@ uv run pytest       # 28 tests
 
 ## Measured
 
-All on 5 October 2026, on a laptop, with the fake model. No number here involves a language model.
+All on 5 October 2026, on a laptop. This table used the fake model; the one real question is below it.
 
 | | |
 |---|---|
@@ -98,12 +98,33 @@ All on 5 October 2026, on a laptop, with the fake model. No number here involves
 | Planner cost of a full scan, an aggregate, a self-join | 5,229, 5,409 and 32,261; the approval threshold is 20,000 |
 | On kind, two replicas | sync of 1,696 contracts in 99 s; a fact stated to one replica and repeated to the other was promoted to long-term memory; the traces reached Jaeger |
 
+### One real question
+
+The service has answered one question with a model (Claude Sonnet 5.5 for the agent, Claude Haiku 4.5 for
+memory): "¿Qué entidades del Cauca contrataron más en 2025 y en qué?". The whole exchange is in
+[chat-output.txt](chat-output.txt). The numbers come from the request's trace.
+
+| | |
+|---|---|
+| What the agent did | 3 model calls and 4 SQL queries (a ranking, a breakdown by type and modality, the three largest contracts of six entities, a breakdown by type per entity). It did not use search. |
+| Figures in the answer checked against the database | 38, all correct: the eight entities' counts and totals, the two medians, the contract values and the breakdowns |
+| Time to the last byte | 33 s, of which 30 s were the three model calls |
+| Tokens of the three agent calls | 14,585 in, 3,021 out: about $0.06 at list price ($2 and $10 per million) |
+| Approval | not asked for: no query was estimated above the threshold |
+
+What that run showed that needed fixing, fixed since and **not yet run again with a model**:
+
+- The trace had 448 spans, most of them one per streamed chunk. Those are now left out.
+- The memory call was not in a span, so its tokens are missing from the cost above.
+
+And one thing it showed that is not fixed: the fact the small model chose to remember was "the user asks about
+public contracting in Cauca, specifically entities and their lines of investment in 2025". That is the topic
+of one question, not a lasting fact about the user, which is what the prompt asks for.
+
 ## Limits
 
-- **It has not run with a language model.** Every run so far used the stand-in, so nothing is known yet about
-  the quality of the answers, the SQL the model writes, the facts it chooses to remember, or what a question
-  costs. The model-calling path (`langchain-anthropic`, tool calling, structured output for memory) is
-  exercised only by construction.
+- **One question is not an evaluation.** It says the path works and that this answer was right. It says nothing
+  about how often the model writes wrong SQL, misreads a column or answers beyond the loaded slice.
 - **Search quality is not evaluated.** For "mantenimiento de vías rurales" the first result was the repair of a
   school building. The dataset has its own ground truth for a first evaluation: questions whose answer is a
   SQL query.

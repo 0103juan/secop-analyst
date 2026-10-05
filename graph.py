@@ -69,13 +69,25 @@ class Facts(BaseModel):
     facts: list[str] = Field(description="Hechos duraderos sobre el usuario; vacío si no hay ninguno")
 
 
+async def call(model, messages):
+    """A model call inside a span that says which model answered and the tokens it used."""
+    with span("chat", **{"gen_ai.operation.name": "chat"}) as current:
+        response = await model.ainvoke(messages)
+        message = response["raw"] if isinstance(response, dict) else response  # structured output wraps the message
+        usage = message.usage_metadata or {}
+        current.set_attributes({"gen_ai.response.model": message.response_metadata.get("model_name", ""),
+                                "gen_ai.usage.input_tokens": usage.get("input_tokens", 0),
+                                "gen_ai.usage.output_tokens": usage.get("output_tokens", 0)})
+    return response
+
+
 def extractor(model: BaseChatModel):
     """The function `remember` uses to take facts out of an exchange, on a model of its own (a small one is enough)."""
-    structured = model.with_structured_output(Facts)
+    structured = model.with_structured_output(Facts, include_raw=True)
 
     async def extract(question: str, answer: str) -> list[str]:
-        found = await structured.ainvoke([SystemMessage(EXTRACT), HumanMessage(f"Usuario: {question}\n\nAsistente: {answer}")])
-        return found.facts
+        found = await call(structured, [SystemMessage(EXTRACT), HumanMessage(f"Usuario: {question}\n\nAsistente: {answer}")])
+        return found["parsed"].facts if found["parsed"] else []  # an answer that does not fit the schema keeps nothing
     return extract
 
 
@@ -100,13 +112,7 @@ def build(model: BaseChatModel, extract, contracts: db.Contracts, memory, checkp
         known = "\n\nLo que sabes de este usuario:\n" + "\n".join(f"- {fact}" for fact in state["memories"]) if state["memories"] else ""
         # ponytail: the whole thread goes to the model on every turn. Summarise the older turns into the state
         # when threads get long enough for the tokens to matter.
-        with span("chat", **{"gen_ai.operation.name": "chat"}) as current:
-            response = await model.ainvoke([SystemMessage(PROMPT + known), *state["messages"]])
-            usage = response.usage_metadata or {}
-            current.set_attributes({"gen_ai.response.model": response.response_metadata.get("model_name", ""),
-                                    "gen_ai.usage.input_tokens": usage.get("input_tokens", 0),
-                                    "gen_ai.usage.output_tokens": usage.get("output_tokens", 0)})
-        return {"messages": [response]}
+        return {"messages": [await call(model, [SystemMessage(PROMPT + known), *state["messages"]])]}
 
     async def tools(state: State):
         results = []

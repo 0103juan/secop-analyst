@@ -38,6 +38,7 @@ async def test_a_request_leaves_one_trace_with_a_span_per_node_model_call_tool_a
         assert expected in names, names
     assert any(name.startswith("SELECT") or name.startswith("WITH") for name in names)       # psycopg
     assert any(name in ("SMEMBERS", "INCR") for name in names)                                # redis
+    assert not any(name.endswith("http send") for name in names)  # one per streamed chunk, left out on purpose
     request = next(span for span in spans.get_finished_spans() if span.name == "POST /chat")
     assert request.attributes["gen_ai.conversation.id"] == "t1"
     assert len({span.context.trace_id for span in spans.get_finished_spans() if span.name.startswith("node ")}) == 1

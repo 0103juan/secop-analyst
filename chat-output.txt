@@ -1,0 +1,59 @@
+> python chat.py "¿Qué entidades del Cauca contrataron más en 2025 y en qué?"
+
+[query_contracts] {"sql": "SELECT entity_nit, MIN(entity) AS entity, COUNT(*) AS n, SUM(value_cop) AS total, percentile_cont(0.5) WITHIN GROUP (ORDER BY value_cop) AS mediana, MAX(value_cop) AS maximo FROM contracts WHERE department ILIKE 'Cauca' AND year = 2025 GROUP BY entity_nit ORDER BY total DESC NULLS LAST LIMIT 15"}
+
+[query_contracts] {"sql": "SELECT contract_type, modality, COUNT(*) AS n, SUM(value_cop) AS total FROM contracts WHERE department ILIKE 'Cauca' AND year = 2025 GROUP BY contract_type, modality ORDER BY total DESC NULLS LAST LIMIT 20"}
+
+[query_contracts] {"sql": "SELECT entity_nit, id, value_cop, contract_type, modality, left(object, 200) AS objeto FROM (SELECT *, row_number() OVER (PARTITION BY entity_nit ORDER BY value_cop DESC NULLS LAST) rn FROM contracts WHERE department ILIKE 'Cauca' AND year = 2025 AND entity_nit IN (891580016,899999239,891501676,891580006,899999034,817000320)) t WHERE rn <= 3 ORDER BY entity_nit, rn"}
+
+[query_contracts] {"sql": "SELECT entity_nit, contract_type, COUNT(*) AS n, SUM(value_cop) AS total FROM contracts WHERE department ILIKE 'Cauca' AND year = 2025 AND entity_nit IN (891580016,899999239,891501676,891580006,899999034) GROUP BY entity_nit, contract_type ORDER BY entity_nit, total DESC NULLS LAST"}
+Estos resultados salen de los contratos de SECOP II cargados en la base, que son solo una parte del total. Filtré por departamento Cauca y año de firma 2025. Los ordené por valor total y también te doy el número de contratos. Los valores están en pesos.
+
+## Entidades con más contratación en 2025
+
+| # | Entidad | Contratos | Valor total |
+|---|---|---|---|
+| 1 | Gobernación del Cauca | 3.934 | ≈ $893.437 millones |
+| 2 | ICBF Regional Cauca | 843 | ≈ $343.901 millones |
+| 3 | Hospital Susana López de Valencia | 385 | ≈ $216.067 millones |
+| 4 | Alcaldía de Popayán | 3.959 | ≈ $185.592 millones |
+| 5 | SENA Regional Cauca | 1.643 | ≈ $129.163 millones |
+| 6 | Fondo Municipal de Vivienda de Puerto Tejada | 1 | ≈ $119.159 millones |
+| 7 | Alcaldía de Santander de Quilichao | 795 | ≈ $50.230 millones |
+| 8 | Corporación Autónoma Regional del Cauca (CRC) | 766 | ≈ $46.317 millones |
+
+Por número de contratos, la Alcaldía de Popayán (3.959) y la Gobernación (3.934) están muy por encima del resto. Les sigue el SENA, con 1.643.
+
+## En qué contrataron
+
+- **Gobernación del Cauca:**
+  - El mayor gasto está en convenios de "atención educativa" con organizaciones indígenas, que el sistema clasifica como tipo "Otro". Son 227 contratos por unos $489.000 millones. Por ejemplo, CO1.PCCNTR.7370119 ($87.315 millones), CO1.PCCNTR.8562989 ($68.916 millones, atención educativa vigencia 2026) y CO1.PCCNTR.7363297 ($51.945 millones).
+  - Le siguen 3.510 contratos de prestación de servicios, por unos $296.000 millones, y obra por unos $42.652 millones.
+- **ICBF Regional Cauca:** casi todo el valor (unos $327.600 millones) es atención a la primera infancia y educación inicial. Ejemplos: CO1.PCCNTR.7388103 ($10.156 millones), CO1.PCCNTR.7386940 y CO1.PCCNTR.7387635. Hay además 540 contratos de prestación de servicios, pequeños (unos $15.566 millones).
+- **Hospital Susana López de Valencia:**
+  - Contrata sobre todo servicios de salud, por unos $140.237 millones. Por ejemplo, CO1.PCCNTR.8029138 es de cuidados intensivos y especialidades ($4.640 millones).
+  - También compra suministros, por unos $51.262 millones.
+  - Su contrato más grande es una obra, CO1.PCCNTR.8726188 ($15.669 millones). Es la construcción de la planta física para consulta externa y áreas administrativas.
+- **Alcaldía de Popayán:**
+  - Predominan los contratos de prestación de servicios: 3.690 por unos $101.823 millones, con una mediana de unos $16 millones.
+  - Los más grandes son vigilancia (CO1.PCCNTR.8703548, $8.568 millones) y estudios y diseños de escenarios deportivos (CO1.PCCNTR.8654214, $7.150 millones, y CO1.PCCNTR.8014860, $6.150 millones, que incluye el estadio Ciro López).
+  - También hay obra por unos $21.887 millones.
+- **SENA Regional Cauca:**
+  - Es sobre todo prestación de servicios, con 1.460 contratos por unos $108.000 millones.
+  - Dentro de eso pesan dos licitaciones de vigilancia para la zona 4 del SENA (Cauca, Valle, Nariño, Caquetá, Putumayo y Huila): CO1.PCCNTR.7880528 ($31.422 millones) y CO1.PCCNTR.7878932 ($20.948 millones). Esos contratos cubren varias regionales, no solo el Cauca.
+  - También compra equipos, como CO1.PCCNTR.8562361 (paneles solares, $3.173 millones).
+- **Fondo de Vivienda de Puerto Tejada:** tiene un solo contrato, CO1.PCCNTR.8713859, por $119.159 millones. Es un convenio para el proyecto de vivienda de interés social "128 Parque Residencial Altavista". Ese contrato solo lo ubica en sexto lugar.
+
+## Panorama por tipo y modalidad en el Cauca (2025)
+
+- La modalidad con más valor es la contratación directa con ofertas, tipo "Otro", con $494.464 millones. Son los convenios de la Gobernación.
+- Sigue la prestación de servicios por contratación directa: 13.399 contratos y unos $422.379 millones.
+- Después viene el régimen especial, con unos $324.236 millones en contratos tipo "Otro" y unos $195.620 millones en prestación de servicios.
+
+## Advertencias
+
+- Los valores tienen atípicos. Los contratos únicos muy grandes, como el de Puerto Tejada o los convenios indígenas de la Gobernación, mueven mucho los totales.
+- Por eso las medianas son bajas: unos $20 millones en la Gobernación y unos $16 millones en Popayán.
+- La clasificación "Otro" y el régimen especial agrupan convenios de naturaleza muy distinta. El "en qué" lo tomé de los objetos de los contratos más grandes, no de una clasificación temática completa.
+
+(hilo 6ea769e2, usuario demo)
