@@ -1,0 +1,27 @@
+# The base on a kind cluster: a locally built image, the fake model unless a key is given, and two ports
+# on the host. The README has the commands.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: secop-analyst
+resources:
+  - ../base
+images:
+  - name: secop-analyst
+    newTag: local
+configMapGenerator:
+  - name: api-config
+    behavior: merge
+    literals:
+      - INGEST_WHERE=ciudad='Popayán' AND fecha_de_firma >= '2026-09-01'  # a small slice, so the first sync takes a minute
+secretGenerator:
+  - name: api-secret
+    envs: [secret.env]
+patches:
+  - target: {kind: Service, name: api}
+    patch: |
+      - {op: add, path: /spec/type, value: NodePort}
+      - {op: add, path: /spec/ports/0/nodePort, value: 30080}
+  - target: {kind: Service, name: jaeger}
+    patch: |
+      - {op: add, path: /spec/type, value: NodePort}
+      - {op: add, path: /spec/ports/0/nodePort, value: 30686}

@@ -1,0 +1,8 @@
+.venv
+.git
+__pycache__
+.pytest_cache
+k8s/local
+*.txt
+test_*.py
+conftest.py

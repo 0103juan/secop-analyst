@@ -1,0 +1,52 @@
+# Everything the agent needs, on one machine:  docker compose up --build
+# The API answers on http://localhost:8000 and the traces are at http://localhost:16686
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: secop
+    ports: ["5433:5432"]  # 5433 on the host, in case a local Postgres already has 5432
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d secop"]
+      interval: 3s
+      retries: 20
+
+  redis:
+    image: redis:8-alpine
+    ports: ["6379:6379"]
+
+  jaeger:
+    image: jaegertracing/jaeger:2.21.0
+    ports: ["16686:16686"]
+
+  otel-collector:
+    image: otel/opentelemetry-collector:0.162.0
+    volumes: [./k8s/base/otel-collector.yaml:/etc/otelcol/config.yaml:ro]
+    depends_on: [jaeger]
+
+  migrate:
+    build: .
+    command: ["python", "db.py"]
+    environment: &app-env
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/secop
+      REDIS_URL: redis://redis:6379/0
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4318
+      OTEL_SERVICE_NAME: secop-analyst
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      FAKE_MODEL: ${FAKE_MODEL:-}
+      SQL_COST_LIMIT: ${SQL_COST_LIMIT:-20000}
+    depends_on:
+      postgres: {condition: service_healthy}
+
+  api:
+    build: .
+    environment: *app-env
+    ports: ["8000:8000"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_started}
+
+volumes:
+  pgdata:

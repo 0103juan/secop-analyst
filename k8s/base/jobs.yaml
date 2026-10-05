@@ -1,0 +1,71 @@
+# The two things that run on a schedule instead of on a request.
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ingest
+spec:
+  schedule: "0 7 * * *"  # 02:00 in Colombia: the incremental sync with datos.gov.co
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: job
+              image: secop-analyst
+              command: ["python", "ingest.py"]
+              envFrom:
+                - configMapRef: {name: api-config}
+                - secretRef: {name: api-secret}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: [ALL]}
+              resources:
+                requests: {cpu: 500m, memory: 768Mi}
+                limits: {memory: 1536Mi}
+              volumeMounts:
+                - {name: tmp, mountPath: /tmp}
+          volumes:
+            - name: tmp
+              emptyDir: {}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: demote-memories
+spec:
+  schedule: "30 7 * * *"  # long-term memories nobody used go back to working memory
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: Never
+          automountServiceAccountToken: false
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 10001
+            seccompProfile: {type: RuntimeDefault}
+          containers:
+            - name: job
+              image: secop-analyst
+              command: ["python", "memory.py"]
+              envFrom:
+                - configMapRef: {name: api-config}
+                - secretRef: {name: api-secret}
+              securityContext:
+                allowPrivilegeEscalation: false
+                readOnlyRootFilesystem: true
+                capabilities: {drop: [ALL]}
+              resources:
+                requests: {cpu: 50m, memory: 128Mi}
+                limits: {memory: 512Mi}

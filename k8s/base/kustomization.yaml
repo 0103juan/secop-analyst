@@ -1,0 +1,20 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: secop-analyst
+resources:
+  - namespace.yaml
+  - api.yaml
+  - postgres.yaml
+  - redis.yaml
+  - telemetry.yaml
+  - jobs.yaml
+configMapGenerator:
+  - name: api-config
+    literals:
+      - REDIS_URL=redis://redis:6379/0
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4318
+      - OTEL_SERVICE_NAME=secop-analyst
+      - SQL_COST_LIMIT=20000
+  - name: otel-collector
+    files:
+      - config.yaml=otel-collector.yaml
