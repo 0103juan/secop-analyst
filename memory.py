@@ -101,6 +101,21 @@ class Memory:
             else:
                 await self._put_working(user, fact, vector)
 
+    async def facts(self, user: str) -> list[str]:
+        """Everything remembered about a user, long-term first: what a person may ask to see."""
+        async with self.pool.connection() as conn:
+            rows = await (await conn.execute("SELECT text FROM memories WHERE user_id = %s ORDER BY created_at",
+                                             (user,))).fetchall()
+        return [row["text"] for row in rows] + [item["text"] for item in await self._working(user)]
+
+    async def forget(self, user: str) -> int:
+        """Deletes everything remembered about a user, from both tiers. Returns how many facts were deleted."""
+        async with self.pool.connection() as conn:
+            lasting = (await conn.execute("DELETE FROM memories WHERE user_id = %s", (user,))).rowcount
+        ids = await self.redis.smembers(f"wm:{user}")
+        await self.redis.delete(f"wm:{user}", *(f"wm:{user}:{key.decode()}" for key in ids))
+        return lasting + len(ids)
+
     async def demote(self, days: int = DEMOTE_AFTER_DAYS) -> int:
         """Long-term memories nobody used for `days` go back to working memory, one hit short of promotion:
         a single recall brings them back, and otherwise Redis lets them expire."""

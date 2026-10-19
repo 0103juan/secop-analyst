@@ -58,11 +58,14 @@ work.
 ```
 FAKE_MODEL=1 docker compose up -d --build       # or, with a model: ANTHROPIC_API_KEY=... docker compose up -d --build
 uv run python ingest.py                         # Cauca, contracts signed since 2025
+export ANALYST_KEY=$(docker compose run --rm migrate python keys.py create demo)   # shown once
 python chat.py "alimentación escolar"
 python chat.py "sql: SELECT entity, sum(value_cop) FROM contracts GROUP BY entity ORDER BY 2 DESC LIMIT 5"
 ```
 
-The API is on `http://localhost:8000` and the traces on `http://localhost:16686`.
+The API is on `http://localhost:8000` and the traces on `http://localhost:16686`. Every route but `/healthz`
+and `/readyz` needs `Authorization: Bearer <key>`; the user is the key's owner, so a request cannot name
+someone else. `GET /memory` shows what the agent remembers about the caller and `DELETE /memory` erases it.
 
 On a local Kubernetes cluster ([kind](https://kind.sigs.k8s.io)):
 
@@ -73,6 +76,7 @@ kind create cluster --config k8s/local/kind.yaml
 kind load docker-image secop-analyst:local --name secop-analyst
 kubectl apply -k k8s/local
 kubectl -n secop-analyst create job --from=cronjob/ingest ingest-now     # the first sync, without waiting for the schedule
+export ANALYST_KEY=$(kubectl -n secop-analyst exec deploy/api -- python keys.py create demo)
 ANALYST_URL=http://localhost:8080 python chat.py "mantenimiento de vías"
 ```
 
@@ -82,7 +86,7 @@ The tests need Postgres and Redis and nothing else: no model and no embedding mo
 
 ```
 docker compose up -d postgres redis
-uv run pytest       # 28 tests
+uv run pytest       # 32 tests
 ```
 
 ## Measured
@@ -131,8 +135,9 @@ of one question, not a lasting fact about the user, which is what the prompt ask
 - **The memory thresholds are reasoned, not measured:** three sightings to promote, seven days to live,
   thirty to demote, 0.85 and 0.35 as similarity cut-offs. Being recalled counts as use, and recall is by
   similarity, so a fact that is merely near many questions gets promoted without having helped.
-- **No authentication.** The service trusts the `user_id` it is sent. A thread is namespaced by user, which
-  prevents accidents and stops nobody.
+- **API keys, not accounts.** A key is created and revoked from the command line (`keys.py`) and stored as a
+  hash; there is no sign-up, no expiry and no scopes. Deleting the memory does not delete the conversation
+  threads.
 - **The whole thread goes to the model on every turn.** Long conversations are not summarised.
 - **Memory extraction happens inside the request,** after the answer has streamed. The connection stays open
   until it finishes.
