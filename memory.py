@@ -23,6 +23,14 @@ DEMOTE_AFTER_DAYS = int(os.environ.get("MEMORY_DEMOTE_AFTER_DAYS", 30))
 SAME = float(os.environ.get("MEMORY_SAME", 0.85))        # cosine above which two facts are the same fact
 RELEVANT = float(os.environ.get("MEMORY_RELEVANT", 0.35))  # cosine above which a fact is worth recalling
 
+# Adds a hit and restarts the TTL of a working memory, or returns -1 if it has already expired.
+HIT = """
+if redis.call('EXISTS', KEYS[1]) == 0 then return -1 end
+local hits = redis.call('HINCRBY', KEYS[1], 'hits', 1)
+redis.call('EXPIRE', KEYS[1], ARGV[1])
+return hits
+"""
+
 
 class Memory:
     def __init__(self, redis, pool, embed):
@@ -53,16 +61,18 @@ class Memory:
 
     async def _hit(self, user: str, item: dict) -> None:
         """A working memory was seen or recalled again: its TTL restarts, and enough hits promote it."""
-        if item["hits"] + 1 < PROMOTE_AFTER:
-            await self.redis.hincrby(f"wm:{user}:{item['id']}", "hits", 1)
-            await self.redis.expire(f"wm:{user}:{item['id']}", TTL_S)
+        key = f"wm:{user}:{item['id']}"
+        # One atomic step in Redis: two replicas that see the fact at once get different counts, so exactly one
+        # of them reaches PROMOTE_AFTER, and a key that expired since it was read is not brought back without text.
+        hits = await self.redis.eval(HIT, 1, key, TTL_S)
+        if hits != PROMOTE_AFTER:
             return
         # Postgres first: a crash between the two leaves a duplicate in Redis, which the next sighting merges
         # into the long-term row instead of losing the fact.
         async with self.pool.connection() as conn:
             await conn.execute("INSERT INTO memories (user_id, text, embedding, strength) VALUES (%s, %s, %s, %s)",
-                               (user, item["text"], item["embedding"], item["hits"] + 1))
-        await self.redis.delete(f"wm:{user}:{item['id']}")
+                               (user, item["text"], item["embedding"], hits))
+        await self.redis.delete(key)
         await self.redis.srem(f"wm:{user}", item["id"])
 
     async def _long_term(self, conn, user: str, vector: np.ndarray, floor: float, k: int) -> list[dict]:
