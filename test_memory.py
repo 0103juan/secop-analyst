@@ -71,3 +71,26 @@ async def test_a_working_memory_that_expired_is_forgotten(pool, redis):
     await redis.delete(f"wm:ana:{key.decode()}")  # what Redis does when the TTL runs out
 
     assert await memory.recall("ana", "contratación de la alcaldía de Popayán") == [] and await redis.smembers("wm:ana") == set()
+
+
+async def test_two_sightings_at_once_promote_a_fact_once(pool, redis):
+    import asyncio
+
+    memory = Memory(redis, pool, embed)
+    for _ in range(PROMOTE_AFTER - 1):
+        await memory.observe("ana", [FACT])
+    [item] = await memory._working("ana")  # both requests read it before either writes, as two replicas would
+
+    await asyncio.gather(memory._hit("ana", item), memory._hit("ana", item))
+    assert await long_term(pool) == [{"text": FACT, "strength": PROMOTE_AFTER}]
+
+
+async def test_a_hit_on_an_expired_memory_does_not_bring_it_back(pool, redis):
+    memory = Memory(redis, pool, embed)
+    await memory.observe("ana", [FACT])
+    [item] = await memory._working("ana")
+    await redis.delete(f"wm:ana:{item['id']}")  # expires between the read and the hit
+
+    await memory._hit("ana", item)
+    assert not await redis.exists(f"wm:ana:{item['id']}")
+    assert await memory.recall("ana", "contratación de la alcaldía de Popayán") == []
