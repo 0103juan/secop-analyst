@@ -37,6 +37,14 @@ CREATE TABLE IF NOT EXISTS memories (
 );
 CREATE INDEX IF NOT EXISTS memories_user ON memories (user_id, last_used_at);
 
+-- Who may call the API: one row per key, kept as a hash (keys.py).
+CREATE TABLE IF NOT EXISTS api_keys (
+    key_hash   bytea PRIMARY KEY,
+    user_id    text NOT NULL,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    revoked_at timestamptz
+);
+
 -- The only role that runs SQL written by the model: it can read one table and nothing else.
 DO $$ BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'analyst_ro') THEN
