@@ -63,6 +63,11 @@ python chat.py "alimentación escolar"
 python chat.py "sql: SELECT entity, sum(value_cop) FROM contracts GROUP BY entity ORDER BY 2 DESC LIMIT 5"
 ```
 
+The model is Claude by default. `MODEL_PROVIDER=vertex` with `GOOGLE_CLOUD_PROJECT=<project>` serves it with
+Gemini on Vertex AI instead (`gemini-3.5-flash` answers, `gemini-3.5-flash-lite` extracts the facts to
+remember; `MODEL` and `SMALL_MODEL` change them), authenticated with the runtime's Google credentials. The graph
+does not change: it takes any LangChain chat model that calls tools.
+
 The API is on `http://localhost:8000` and the traces on `http://localhost:16686`. Every route but `/healthz`
 and `/readyz` needs `Authorization: Bearer <key>`; the user is the key's owner, so a request cannot name
 someone else. `GET /memory` shows what the agent remembers about the caller and `DELETE /memory` erases it.

@@ -40,6 +40,26 @@ RATE_PER_MINUTE = int(os.environ.get("RATE_PER_MINUTE", 20))
 log = logging.getLogger("secop-analyst")
 
 
+def models():
+    """The model that answers and the small one that takes facts out of an exchange. MODEL_PROVIDER says who
+    serves them: Anthropic (the default, with ANTHROPIC_API_KEY) or Gemini on Vertex AI (`vertex`, with the
+    runtime's Google credentials and GOOGLE_CLOUD_PROJECT)."""
+    if os.environ.get("FAKE_MODEL"):
+        return FakeAnalyst(), fake_extract
+    if os.environ.get("MODEL_PROVIDER") == "vertex":
+        from langchain_google_genai import ChatGoogleGenerativeAI
+
+        def gemini(name: str, tokens: int):  # Gemini's thinking tokens count against max_output_tokens
+            return ChatGoogleGenerativeAI(model=name, max_output_tokens=tokens, vertexai=True,
+                                          project=os.environ["GOOGLE_CLOUD_PROJECT"],
+                                          location=os.environ.get("GOOGLE_CLOUD_LOCATION", "global"))
+        return (gemini(os.environ.get("MODEL", "gemini-3.5-flash"), 8000),
+                extractor(gemini(os.environ.get("SMALL_MODEL", "gemini-3.5-flash-lite"), 1000)))
+    from langchain_anthropic import ChatAnthropic
+    return (ChatAnthropic(model=os.environ.get("MODEL", "claude-sonnet-5-5"), max_tokens=4000),
+            extractor(ChatAnthropic(model=os.environ.get("SMALL_MODEL", "claude-haiku-4-5"), max_tokens=1000)))
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     pool = await db.open_pool()
@@ -48,12 +68,7 @@ async def lifespan(app: FastAPI):
     await saver_pool.open()
     redis = Redis.from_url(os.environ.get("REDIS_URL", "redis://localhost:6379/0"))
     embed = db.fastembed()
-    if os.environ.get("FAKE_MODEL"):
-        model, extract = FakeAnalyst(), fake_extract
-    else:
-        from langchain_anthropic import ChatAnthropic
-        model = ChatAnthropic(model=os.environ.get("MODEL", "claude-sonnet-5-5"), max_tokens=4000)
-        extract = extractor(ChatAnthropic(model=os.environ.get("SMALL_MODEL", "claude-haiku-4-5"), max_tokens=1000))
+    model, extract = models()
     app.state.pool, app.state.redis, app.state.memory = pool, redis, Memory(redis, pool, embed)
     app.state.graph = build(model, extract, db.Contracts(pool, embed), app.state.memory, AsyncPostgresSaver(saver_pool))
     yield
