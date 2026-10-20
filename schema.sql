@@ -52,6 +52,9 @@ DO $$ BEGIN
     END IF;
 END $$;
 GRANT SELECT ON contracts TO analyst_ro;
+-- The service switches to it with SET ROLE, which needs this where the service's user is not a true superuser
+-- (on Cloud SQL, postgres is not): since Postgres 16 creating a role no longer lets its creator become it.
+GRANT analyst_ro TO current_user;
 
 -- Where each slice of the upstream dataset was left: the cursor of ingest.py.
 CREATE TABLE IF NOT EXISTS sync_state (
