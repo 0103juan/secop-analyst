@@ -58,7 +58,7 @@ async def schema(anyio_backend):
 async def pool(schema):
     pool = await db.open_pool(DSN)
     async with pool.connection() as conn:
-        await conn.execute("TRUNCATE contracts, memories, checkpoints, checkpoint_blobs, checkpoint_writes")
+        await conn.execute("TRUNCATE contracts, memories, demo_usage, checkpoints, checkpoint_blobs, checkpoint_writes")
         for (key, entity, nit, kind, text, supplier, signed, value), vector in zip(CONTRACTS, embed([row[4] for row in CONTRACTS])):
             await conn.execute(
                 "INSERT INTO contracts (id, entity, entity_nit, department, contract_type, object, supplier, signed_on, value_cop, embedding) "

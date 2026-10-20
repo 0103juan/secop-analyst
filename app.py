@@ -6,21 +6,26 @@
     DELETE /memory   forget all of it
     GET    /healthz  the process is up
     GET    /readyz   Postgres and Redis answer
+    GET    /         a page to try it from a browser
 
-Every route but the health checks needs `Authorization: Bearer <key>` (keys.py). The user is the key's owner.
+Every route but the health checks and the page needs `Authorization: Bearer <key>` (keys.py). The user is the
+key's owner. With DEMO_QUESTIONS_PER_DAY set, a request without a key is an anonymous visitor instead, held to
+DEMO_QUESTIONS_PER_VISITOR questions a day and all visitors together to DEMO_QUESTIONS_PER_DAY.
 
 Runs on Linux (see compose.yaml): psycopg's async mode does not work on the event loop uvicorn uses on Windows.
 """
 
+import hashlib
 import json
 import logging
 import os
 import time
+from datetime import date
 from contextlib import asynccontextmanager
 from typing import Annotated
 
-from fastapi import Depends, FastAPI, HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from langgraph.checkpoint.postgres.aio import AsyncPostgresSaver
 from langgraph.types import Command
@@ -37,6 +42,8 @@ from graph import Context, FakeAnalyst, build, extractor, fake_extract
 from memory import Memory
 
 RATE_PER_MINUTE = int(os.environ.get("RATE_PER_MINUTE", 20))
+DEMO_PER_DAY = int(os.environ.get("DEMO_QUESTIONS_PER_DAY", 0))  # 0: no anonymous access
+DEMO_PER_VISITOR = int(os.environ.get("DEMO_QUESTIONS_PER_VISITOR", 10))
 log = logging.getLogger("secop-analyst")
 
 
@@ -90,13 +97,45 @@ async def limit(user: str) -> None:
         raise HTTPException(429, "too many requests; try again in a minute")
 
 
-async def caller(credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(HTTPBearer(auto_error=False))]) -> str:
-    """The owner of the key in the Authorization header. Whatever the body says, this is the user."""
-    user = credentials and await keys.user_of(app.state.pool, credentials.credentials)
+def visitor(request: Request) -> str:
+    """An anonymous visitor: a hash of the address the request came from, so no address is stored.
+    ponytail: the first X-Forwarded-For entry is whatever the client sent, so one person can pose as many
+    visitors; the daily total still holds. Take the address the load balancer appended if that matters."""
+    address = request.headers.get("x-forwarded-for", "").split(",")[0].strip() or request.client.host
+    return "demo:" + hashlib.sha256(address.encode()).hexdigest()[:16]
+
+
+async def caller(request: Request,
+                 credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(HTTPBearer(auto_error=False))]) -> str:
+    """The owner of the key in the Authorization header. Whatever the body says, this is the user. Without a
+    key, and only while the demo is on, the user is the anonymous visitor."""
+    if credentials:
+        user = await keys.user_of(app.state.pool, credentials.credentials)
+    else:
+        user = visitor(request) if DEMO_PER_DAY else None
     if not user:
         raise HTTPException(401, "a valid API key is required", headers={"WWW-Authenticate": "Bearer"})
     await limit(user)
     return user
+
+
+async def count_question(user: str) -> None:
+    """Holds anonymous visitors to their daily questions, and all of them together to the demo's. In Postgres,
+    so that the count survives the instance being replaced."""
+    if not user.startswith("demo:"):
+        return
+    async with app.state.pool.connection() as conn:
+        row = await (await conn.execute(
+            "SELECT coalesce(sum(questions), 0) AS everyone, coalesce(sum(questions) FILTER (WHERE visitor = %s), 0) AS mine "
+            "FROM demo_usage WHERE day = %s", (user, date.today()))).fetchone()
+        if row["everyone"] >= DEMO_PER_DAY:
+            raise HTTPException(429, "the demo has answered all the questions it can for today; try again tomorrow")
+        if row["mine"] >= DEMO_PER_VISITOR:
+            raise HTTPException(429, f"a visitor can ask {DEMO_PER_VISITOR} questions a day; try again tomorrow")
+        # ponytail: two visitors at the same moment can both pass the check and go one over the total.
+        await conn.execute("INSERT INTO demo_usage (day, visitor, questions) VALUES (%s, %s, 1) "
+                           "ON CONFLICT (day, visitor) DO UPDATE SET questions = demo_usage.questions + 1",
+                           (date.today(), user))
 
 
 User = Annotated[str, Depends(caller)]
@@ -131,6 +170,7 @@ async def run(payload, user: str, thread: str):
 
 @app.post("/chat")
 async def chat(body: Chat, user: User):
+    await count_question(user)
     return StreamingResponse(run({"messages": [("user", body.message)]}, user, body.thread_id),
                              media_type="text/event-stream")
 
@@ -149,6 +189,11 @@ async def memory(user: User):
 @app.delete("/memory")
 async def forget(user: User):
     return {"deleted": await app.state.memory.forget(user)}
+
+
+@app.get("/", include_in_schema=False)
+async def page():
+    return FileResponse("static/index.html")
 
 
 @app.get("/healthz")

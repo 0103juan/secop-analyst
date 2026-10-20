@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>secop-analyst</title>
+<meta name="description" content="Pregúntale a un agente por 35.718 contratos públicos del Cauca en SECOP II.">
+<style>
+:root {
+  --bg: #f7f8f6; --surface: #ffffff; --fg: #1b211e; --muted: #5d6963; --line: #d9dfdb;
+  --accent: #1d6b52; --accent-fg: #ffffff; --warn-bg: #fff6e5; --warn: #8a5300;
+  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #121614; --surface: #1a201d; --fg: #e6ece9; --muted: #9aa8a1; --line: #2d3732;
+          --accent: #5ac39b; --accent-fg: #0d1210; --warn-bg: #2e2412; --warn: #f0b75c; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 var(--sans); }
+main { max-width: 780px; margin: 0 auto; padding: 28px 16px 48px; display: grid; gap: 20px; }
+h1 { margin: 0; font-size: 1.6rem; line-height: 1.2; }
+.lede { margin: 6px 0 0; color: var(--muted); max-width: 64ch; }
+.examples { display: flex; flex-wrap: wrap; gap: 8px; }
+.examples button { font: inherit; font-size: .9rem; border: 1px solid var(--line); background: var(--surface);
+  color: var(--fg); border-radius: 999px; padding: 6px 12px; cursor: pointer; text-align: left; }
+.examples button:hover, .examples button:focus-visible { border-color: var(--accent); outline: none; }
+#log { display: grid; gap: 14px; }
+.turn { display: grid; gap: 8px; }
+.question { justify-self: end; background: var(--accent); color: var(--accent-fg); padding: 8px 14px;
+  border-radius: 14px 14px 4px 14px; max-width: 85%; }
+.answer { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px;
+  min-width: 0; overflow-wrap: anywhere; }
+.answer table { border-collapse: collapse; display: block; overflow-x: auto; font-size: .9rem; }
+.answer th, .answer td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: left; }
+.answer p:first-child { margin-top: 0; } .answer p:last-child { margin-bottom: 0; }
+.tool { font: .8rem/1.4 var(--mono); color: var(--muted); border-left: 2px solid var(--line); padding: 2px 0 2px 10px;
+  white-space: pre-wrap; overflow-wrap: anywhere; }
+.approval { background: var(--warn-bg); color: var(--fg); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; }
+.approval strong { color: var(--warn); }
+.approval pre { margin: 0; font: .8rem/1.4 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+.approval .row { display: flex; gap: 8px; }
+.error { color: var(--warn); }
+form { display: flex; gap: 8px; position: sticky; bottom: 0; padding: 10px 0; background: var(--bg); }
+textarea { flex: 1; min-width: 0; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--surface); color: var(--fg); resize: vertical; min-height: 46px; }
+textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+button.primary, .approval button { font: inherit; border: 0; border-radius: 10px; padding: 0 18px; cursor: pointer;
+  background: var(--accent); color: var(--accent-fg); min-height: 44px; }
+.approval button.secondary { background: transparent; color: var(--fg); border: 1px solid var(--line); }
+button:disabled { opacity: .5; cursor: default; }
+footer { color: var(--muted); font-size: .85rem; display: grid; gap: 4px; }
+a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Contratos públicos del Cauca, en preguntas</h1>
+    <p class="lede">Un agente con LangGraph responde sobre 35.718 contratos de SECOP II firmados en el Cauca desde 2025.
+      Busca por tema, escribe SQL de solo lectura y cita el id de cada contrato. Las consultas costosas esperan
+      tu aprobación antes de correr.</p>
+  </header>
+
+  <div class="examples" aria-label="Preguntas de ejemplo">
+    <button type="button">¿Cuáles son los 5 contratos de mayor valor de la Gobernación del Cauca?</button>
+    <button type="button">Contratos de alimentación escolar en Popayán</button>
+    <button type="button">¿Cuánto se contrató por cada modalidad en 2025?</button>
+    <button type="button">¿Qué proveedores tienen más contratos de obra?</button>
+  </div>
+
+  <section id="log" aria-live="polite"></section>
+
+  <form id="ask">
+    <label for="message" hidden>Tu pregunta</label>
+    <textarea id="message" rows="1" placeholder="Pregunta por entidades, proveedores, valores, temas…" required></textarea>
+    <button class="primary" id="send" type="submit">Preguntar</button>
+  </form>
+
+  <footer>
+    <span>Demo con tope diario de preguntas. Responde Gemini en Vertex AI; los datos son públicos
+      (<a href="https://www.colombiacompra.gov.co/" rel="noopener">Colombia Compra Eficiente</a>).</span>
+    <span>Código, decisiones y pruebas: <a href="https://github.com/0103juan/secop-analyst" rel="noopener">github.com/0103juan/secop-analyst</a></span>
+  </footer>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.12/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js"></script>
+<script>
+const thread = crypto.randomUUID();
+const log = document.getElementById("log");
+const form = document.getElementById("ask");
+const input = document.getElementById("message");
+const send = document.getElementById("send");
+
+function render(markdown) {
+  return window.marked && window.DOMPurify ? DOMPurify.sanitize(marked.parse(markdown)) : null;
+}
+
+function el(tag, cls, text) {
+  const node = document.createElement(tag);
+  if (cls) node.className = cls;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
+
+async function stream(path, body, turn) {
+  send.disabled = true;
+  const answer = el("div", "answer");
+  let text = "";
+  const show = () => { const html = render(text); html === null ? (answer.textContent = text) : (answer.innerHTML = html); };
+  try {
+    const response = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    if (!response.ok) {
+      const detail = await response.json().catch(() => ({}));
+      turn.append(el("div", "answer error", detail.detail || `El servicio respondió ${response.status}.`));
+      return;
+    }
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let cut;
+      while ((cut = buffer.indexOf("\n\n")) >= 0) {
+        const block = buffer.slice(0, cut); buffer = buffer.slice(cut + 2);
+        const name = (block.match(/^event: (.*)$/m) || [])[1];
+        const data = JSON.parse((block.match(/^data: (.*)$/m) || [, "null"])[1]);
+        if (name === "token") { if (!answer.isConnected) turn.append(answer); text += data; show(); }
+        else if (name === "tool") {
+          const args = data.args.sql || data.args.query || JSON.stringify(data.args);
+          turn.append(el("div", "tool", (data.name === "query_contracts" ? "SQL  " : "búsqueda  ") + args));
+        }
+        else if (name === "approval") approval(turn, data);
+        else if (name === "error") turn.append(el("div", "answer error", `Falló la consulta (traza ${data.trace_id}).`));
+      }
+    }
+  } catch (error) {
+    turn.append(el("div", "answer error", "No se pudo conectar con el servicio."));
+  } finally {
+    send.disabled = false;
+  }
+}
+
+function approval(turn, data) {
+  const box = el("div", "approval");
+  const title = el("div");
+  title.append(el("strong", "", "Consulta costosa. "),
+               document.createTextNode(`El planificador estima ${Math.round(data.cost).toLocaleString("es-CO")}; el límite es ${Math.round(data.limit).toLocaleString("es-CO")}. ¿La corro?`));
+  const row = el("div", "row");
+  const yes = el("button", "", "Aprobar"); yes.type = "button";
+  const no = el("button", "secondary", "Rechazar"); no.type = "button";
+  const decide = (approve) => { yes.disabled = no.disabled = true; stream("/resume", { thread_id: thread, approve }, turn); };
+  yes.onclick = () => decide(true); no.onclick = () => decide(false);
+  row.append(yes, no);
+  box.append(title, el("pre", "", data.sql), row);
+  turn.append(box);
+}
+
+function ask(question) {
+  const turn = el("div", "turn");
+  turn.append(el("div", "question", question));
+  log.append(turn);
+  stream("/chat", { thread_id: thread, message: question }, turn);
+}
+
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+  const question = input.value.trim();
+  if (!question || send.disabled) return;
+  input.value = "";
+  ask(question);
+});
+input.addEventListener("keydown", (event) => {
+  if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); form.requestSubmit(); }
+});
+document.querySelectorAll(".examples button").forEach((button) =>
+  button.addEventListener("click", () => { if (!send.disabled) ask(button.textContent); }));
+</script>
+</body>
+</html>

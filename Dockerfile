@@ -14,6 +14,7 @@ WORKDIR /app
 COPY --from=build /app/.venv .venv
 COPY --from=build /models /models
 COPY *.py schema.sql ./
+COPY static static
 ENV PATH=/app/.venv/bin:$PATH FASTEMBED_CACHE_PATH=/models HF_HUB_OFFLINE=1 PYTHONUNBUFFERED=1
 USER 10001
 EXPOSE 8000
