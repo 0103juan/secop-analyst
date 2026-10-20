@@ -67,6 +67,11 @@ The API is on `http://localhost:8000` and the traces on `http://localhost:16686`
 and `/readyz` needs `Authorization: Bearer <key>`; the user is the key's owner, so a request cannot name
 someone else. `GET /memory` shows what the agent remembers about the caller and `DELETE /memory` erases it.
 
+`/` serves a page to try the agent from a browser. With `DEMO_QUESTIONS_PER_DAY` set, the API also answers
+requests without a key: each visitor (a hash of their address, never the address) gets
+`DEMO_QUESTIONS_PER_VISITOR` questions a day (10 by default) and all of them together the day's total. The
+counts live in Postgres, so they survive the instance being replaced. A request with a key is not counted.
+
 On a local Kubernetes cluster ([kind](https://kind.sigs.k8s.io)):
 
 ```

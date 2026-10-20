@@ -45,6 +45,14 @@ CREATE TABLE IF NOT EXISTS api_keys (
     revoked_at timestamptz
 );
 
+-- Questions asked by anonymous visitors of the demo, per day (app.py). The visitor is a hash, not an address.
+CREATE TABLE IF NOT EXISTS demo_usage (
+    day       date NOT NULL,
+    visitor   text NOT NULL,
+    questions int NOT NULL,
+    PRIMARY KEY (day, visitor)
+);
+
 -- The only role that runs SQL written by the model: it can read one table and nothing else.
 DO $$ BEGIN
     IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = 'analyst_ro') THEN

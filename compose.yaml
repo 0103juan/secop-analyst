@@ -37,6 +37,7 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       FAKE_MODEL: ${FAKE_MODEL:-}
       SQL_COST_LIMIT: ${SQL_COST_LIMIT:-20000}
+      DEMO_QUESTIONS_PER_DAY: ${DEMO_QUESTIONS_PER_DAY:-0}
     depends_on:
       postgres: {condition: service_healthy}
 

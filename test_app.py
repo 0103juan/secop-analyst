@@ -120,3 +120,35 @@ async def test_a_failure_reaches_the_client_as_a_trace_id_without_the_details(cl
 
     assert "event: error" in response.text and "trace_id" in response.text
     assert "password" not in response.text and "10.0.0.7" not in response.text
+
+
+async def test_with_the_demo_on_a_visitor_without_a_key_is_held_to_their_questions_and_the_days(client, monkeypatch):
+    import app as service
+    monkeypatch.setattr(service, "DEMO_PER_DAY", 3)
+    monkeypatch.setattr(service, "DEMO_PER_VISITOR", 2)
+    body = {"thread_id": "t1", "message": "malla vial"}
+    one, two = {"X-Forwarded-For": "203.0.113.1"}, {"X-Forwarded-For": "203.0.113.2"}
+
+    assert (await client.post("/chat", json=body, headers=one)).status_code == 200
+    assert (await client.post("/chat", json=body, headers=one)).status_code == 200
+    assert (await client.post("/chat", json=body, headers=one)).status_code == 429        # this visitor's two
+    assert (await client.post("/chat", json=body, headers=two)).status_code == 200
+    assert (await client.post("/chat", json=body, headers=two)).status_code == 429        # the day's three
+    assert (await client.post("/chat", json=body, headers=client.ana)).status_code == 200  # a key is not counted
+
+
+async def test_the_visitor_is_a_hash_and_their_threads_are_their_own(client, monkeypatch, pool):
+    import app as service
+    monkeypatch.setattr(service, "DEMO_PER_DAY", 10)
+    await client.post("/chat", json={"thread_id": "t1", "message": "malla vial"}, headers={"X-Forwarded-For": "203.0.113.1"})
+
+    async with pool.connection() as conn:
+        visitors = [row["visitor"] for row in await (await conn.execute("SELECT visitor FROM demo_usage")).fetchall()]
+    assert len(visitors) == 1 and visitors[0].startswith("demo:") and "203.0.113.1" not in visitors[0]
+    state = await service.app.state.graph.aget_state({"configurable": {"thread_id": f"{visitors[0]}:t1"}})
+    assert state.values["messages"]
+
+
+async def test_the_page_is_served_without_a_key(client):
+    response = await client.get("/")
+    assert response.status_code == 200 and "secop-analyst" in response.text
