@@ -89,6 +89,33 @@ docker compose up -d postgres redis
 uv run pytest       # 32 tests
 ```
 
+## On Google Cloud
+
+[deploy/gcp](deploy/gcp) runs the public demo in a project of its own: the API on Cloud Run with Redis as a
+sidecar, Postgres 17 on the smallest Cloud SQL machine, and Gemini on Vertex AI. Cloud Run scales to zero, so
+what costs money while nobody asks is the database (about 10 USD a month, an estimate).
+
+A kill switch takes the whole project off its billing account, which stops everything in it, in two cases:
+the budget's gross spend (credits left out, so a free-trial project is counted too) reaches its amount, or the
+last day set in `deadline_cron` comes. Both send a message to one Pub/Sub topic; a function decides and acts.
+It was tried in a throwaway project before it guarded this one: a message below the budget left billing on,
+`{"deadline": true}` turned it off. Budget data arrives hours after the spend, so the switch can act late.
+
+```
+cd deploy/gcp
+# terraform.tfvars: project_id, billing_account, budget, budget_currency, deadline_cron, image
+gcloud services enable cloudresourcemanager.googleapis.com serviceusage.googleapis.com --project <project>
+terraform init -backend-config="bucket=<state bucket>"
+terraform apply -target=google_artifact_registry_repository.images
+gcloud builds submit --tag <image_repository>/api:<tag> ../..     # then put its digest in `image`
+terraform apply
+gcloud run jobs execute secop-analyst-migrate --region us-central1 --wait
+gcloud sql import sql secop-analyst gs://<bucket>/data.sql --database secop --user postgres   # pg_dump --data-only
+```
+
+Applying as a person (not a service account) also needs `GOOGLE_BILLING_PROJECT=<project>` and
+`USER_PROJECT_OVERRIDE=true`, for the Budgets API.
+
 ## Measured
 
 All on 5 October 2026, on a laptop. This table used the fake model; the one real question is below it.
