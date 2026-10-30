@@ -136,25 +136,25 @@ body {
   background: rgba(255, 255, 255, 0.9);
 }
 .nav-inner {
-  max-width: 960px;
+  max-width: 1280px;
+  width: 100%;
   margin: 0 auto;
-  padding: 10px 20px;
+  padding: 0 24px;
+  height: 60px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-}
-.nav-left {
-  display: flex;
-  align-items: center;
-  gap: 20px;
+  gap: 24px;
+  box-sizing: border-box;
 }
 .brand-link {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   gap: 10px;
   text-decoration: none;
   color: var(--fg);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .brand-icon {
   width: 24px;
@@ -169,6 +169,7 @@ body {
   display: flex;
   align-items: baseline;
   gap: 4px;
+  white-space: nowrap;
 }
 .brand-title span {
   font-weight: 400;
@@ -184,6 +185,9 @@ body {
   background: var(--accent-subtle);
   color: var(--accent);
   border: 1px solid rgba(56, 189, 248, 0.25);
+  white-space: nowrap;
+  flex-shrink: 0;
+  line-height: 1.3;
 }
 
 /* Suite Cross-Navigation Links */
@@ -194,18 +198,24 @@ body {
   list-style: none;
   margin: 0;
   padding: 0;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .suite-links a {
   color: var(--muted);
   text-decoration: none;
-  font-size: 0.82rem;
+  font-size: 13.5px;
   font-weight: 500;
-  padding: 5px 10px;
-  border-radius: 6px;
+  height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
   transition: all 0.15s ease;
   display: inline-flex;
   align-items: center;
   gap: 6px;
+  box-sizing: border-box;
+  white-space: nowrap;
+  border: 1px solid transparent;
 }
 .suite-links a:hover {
   color: var(--fg);
@@ -214,6 +224,7 @@ body {
 .suite-links a.active {
   color: var(--accent);
   background: var(--accent-subtle);
+  border-color: rgba(56, 189, 248, 0.25);
   font-weight: 600;
 }
 .nav-active-dot {
@@ -227,15 +238,18 @@ body {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.78rem;
+  height: 34px;
+  font-size: 13px;
   font-weight: 500;
   color: var(--fg);
   text-decoration: none;
   background: var(--surface-raised);
   border: 1px solid var(--line);
-  padding: 5px 10px;
-  border-radius: 7px;
+  padding: 0 12px;
+  border-radius: 8px;
   transition: all 0.15s ease;
+  box-sizing: border-box;
+  white-space: nowrap;
 }
 .app-switcher-btn:hover {
   border-color: var(--line-strong);
@@ -258,6 +272,9 @@ body.is-embedded {
   background: transparent !important;
 }
 
+@media (max-width: 1100px) {
+  .status-pill { display: none; }
+}
 @media (max-width: 900px) {
   .suite-links { display: none; }
 }
@@ -266,18 +283,23 @@ body.is-embedded {
   display: flex;
   align-items: center;
   gap: 10px;
+  margin-left: auto;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .status-pill {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.78rem;
+  height: 34px;
+  font-size: 12.5px;
   color: var(--muted);
   background: var(--surface);
   border: 1px solid var(--line);
-  padding: 4px 10px;
+  padding: 0 12px;
   border-radius: 999px;
   white-space: nowrap;
+  box-sizing: border-box;
 }
 .status-dot {
   width: 7px;
@@ -304,6 +326,8 @@ body.is-embedded {
   justify-content: center;
   cursor: pointer;
   transition: all 0.15s ease;
+  flex-shrink: 0;
+  box-sizing: border-box;
 }
 .icon-btn:hover {
   background: var(--surface-raised);
@@ -899,33 +923,31 @@ footer a:hover {
 
 <nav class="top-nav" aria-label="Navegación principal">
   <div class="nav-inner">
-    <div class="nav-left">
-      <a href="/" class="brand-link" title="Inicio de SECOP Analyst">
-        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-opacity="0.25" />
-          <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" stroke-opacity="0.5" />
-          <circle cx="12" cy="12" r="2.5" fill="var(--accent)" />
-          <path d="M12 2C17.52 2 22 6.48 22 12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" />
-        </svg>
-        <div class="brand-title">
-          SECOP <span>analyst</span>
-        </div>
-        <span class="brand-pill">CAUCA · SECOP II</span>
-      </a>
+    <a href="/" class="brand-link" title="Inicio de SECOP Analyst">
+      <svg class="brand-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-opacity="0.25" />
+        <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" stroke-opacity="0.5" />
+        <circle cx="12" cy="12" r="2.5" fill="var(--accent)" />
+        <path d="M12 2C17.52 2 22 6.48 22 12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" />
+      </svg>
+      <div class="brand-title">
+        SECOP <span>analyst</span>
+      </div>
+      <span class="brand-pill">CAUCA · SECOP II</span>
+    </a>
 
-      <ul class="suite-links" aria-label="Ecosistema SECOP">
-        <li><a href="https://secop-alertas-271042683183.us-central1.run.app/contratos" title="Catálogo y búsqueda de contratos">Contratos</a></li>
-        <li><a href="https://secop-alertas-271042683183.us-central1.run.app/lecturas/fraccionamiento" title="Detección de fraccionamiento">Fraccionamiento</a></li>
-        <li><a href="https://secop-alertas-271042683183.us-central1.run.app/lecturas/atipicos" title="Análisis de contratos atípicos">Atípicos</a></li>
-        <li><a href="https://secop-alertas-271042683183.us-central1.run.app/alertas" title="Suscripciones y alertas activas">Mis alertas</a></li>
-        <li>
-          <a href="/" class="active" aria-current="page" title="Consultas con Agente LangGraph">
-            <span>Analista AI</span>
-            <span class="nav-active-dot"></span>
-          </a>
-        </li>
-      </ul>
-    </div>
+    <ul class="suite-links" aria-label="Ecosistema SECOP">
+      <li><a href="https://secop-alertas-271042683183.us-central1.run.app/contratos" title="Catálogo y búsqueda de contratos">Contratos</a></li>
+      <li><a href="https://secop-alertas-271042683183.us-central1.run.app/lecturas/fraccionamiento" title="Detección de fraccionamiento">Fraccionamiento</a></li>
+      <li><a href="https://secop-alertas-271042683183.us-central1.run.app/lecturas/atipicos" title="Análisis de contratos atípicos">Atípicos</a></li>
+      <li><a href="https://secop-alertas-271042683183.us-central1.run.app/alertas" title="Suscripciones y alertas activas">Mis alertas</a></li>
+      <li>
+        <a href="/" class="active" aria-current="page" title="Consultas con Agente LangGraph">
+          <span>Analista AI</span>
+          <span class="nav-active-dot"></span>
+        </a>
+      </li>
+    </ul>
 
     <div class="nav-actions">
       <a href="https://secop-alertas-271042683183.us-central1.run.app/" class="app-switcher-btn" title="Ir al Observatorio SECOP Alertas">
