@@ -47,7 +47,8 @@ flowchart LR
 - **An incremental sync.** Each slice of the dataset keeps a cursor. A second run asks upstream only for what
   changed and embeds only the rows whose text changed.
 
-The reasons behind each of these are in [docs/decisions.md](docs/decisions.md).
+The reasons behind each of these are in [docs/decisions.md](docs/decisions.md); the overall design, the indexes with
+query plans measured on the loaded data, and the failure modes are in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 
 ## Run it
 

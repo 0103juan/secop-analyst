@@ -46,7 +46,9 @@ An agent that keeps everything a user ever said ends up recalling noise. Here a 
   otherwise it expires.
 
 Redis fits the first tier because expiry is what it does; Postgres fits the second because the facts sit next
-to the data, in the same backups, searched with the same pgvector index type as the contracts.
+to the data, in the same backups, searched with pgvector like the contracts. Unlike the contracts there is no
+vector index on them: every query filters by user first, and an exact sort over one user's few facts is both exact
+and fast (see ARCHITECTURE.md).
 
 LangGraph's own `Store` was the alternative. It gives namespaces and semantic search over one store; the
 promotion and demotion rules would still be code written here, on top of an interface that hides the SQL the
