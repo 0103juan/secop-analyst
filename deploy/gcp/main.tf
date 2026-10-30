@@ -176,7 +176,7 @@ resource "google_cloud_run_v2_service" "api" {
     service_account = google_service_account.api.email
 
     scaling {
-      min_instance_count = 0 # nothing runs, and nothing is billed, while nobody asks
+      min_instance_count = 1 # one warm instance, so the embedding model is already loaded
       max_instance_count = 2
     }
 
@@ -187,7 +187,8 @@ resource "google_cloud_run_v2_service" "api" {
         container_port = 8000
       }
       resources {
-        limits = { cpu = "1", memory = "2Gi" } # the embedding model is loaded in memory
+        limits   = { cpu = "1", memory = "2Gi" } # the embedding model is loaded in memory
+        cpu_idle = true                          # CPU only during requests (streaming included), so the warm instance bills at the idle rate
       }
       dynamic "env" {
         for_each = local.env

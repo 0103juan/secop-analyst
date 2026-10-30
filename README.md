@@ -103,8 +103,10 @@ uv run pytest       # 32 tests
 ## On Google Cloud
 
 [deploy/gcp](deploy/gcp) runs the public demo in a project of its own: the API on Cloud Run with Redis as a
-sidecar, Postgres 17 on the smallest Cloud SQL machine, and Gemini on Vertex AI. Cloud Run scales to zero, so
-what costs money while nobody asks is the database (about 10 USD a month, an estimate).
+sidecar, Postgres 17 on the smallest Cloud SQL machine, and Gemini on Vertex AI. Cloud Run keeps one warm
+instance, so the first visitor does not wait for the embedding model to load; with CPU only during requests it is
+billed at the idle rate. While nobody asks, that instance and the database are what cost money (about 40 USD a
+month together, an estimate).
 
 A kill switch takes the whole project off its billing account, which stops everything in it, in two cases:
 the budget's gross spend (credits left out, so a free-trial project is counted too) reaches its amount, or the
