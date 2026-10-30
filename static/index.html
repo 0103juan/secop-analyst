@@ -1,98 +1,1053 @@
 <!doctype html>
-<html lang="es">
+<html lang="es" data-theme="dark">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>secop-analyst</title>
-<meta name="description" content="Pregúntale a un agente por 35.718 contratos públicos del Cauca en SECOP II.">
+<title>secop-analyst · Consulta Inteligente de Contratación Pública</title>
+<meta name="description" content="Pregúntale a un agente autónomo (LangGraph) por 35.718 contratos públicos del Cauca en SECOP II. Búsqueda semántica, SQL solo lectura y supervisión de costos.">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Ccircle cx='12' cy='12' r='10' stroke='%2338bdf8' stroke-width='2' stroke-opacity='0.3'/%3E%3Ccircle cx='12' cy='12' r='6' stroke='%2338bdf8' stroke-width='2' stroke-opacity='0.6'/%3E%3Ccircle cx='12' cy='12' r='2.5' fill='%2338bdf8'/%3E%3Cpath d='M12 2C17.52 2 22 6.48 22 12' stroke='%2338bdf8' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
 <style>
-:root {
-  --bg: #f7f8f6; --surface: #ffffff; --fg: #1b211e; --muted: #5d6963; --line: #d9dfdb;
-  --accent: #1d6b52; --accent-fg: #ffffff; --warn-bg: #fff6e5; --warn: #8a5300;
-  --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: ui-monospace, "Cascadia Code", Consolas, monospace;
+:root, [data-theme="dark"] {
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "Cascadia Code", Consolas, monospace;
+
+  /* Sober Neutral Slate (Dark Mode Default) */
+  --bg: #090d16;
+  --bg-gradient: radial-gradient(circle at 50% -20%, rgba(56, 189, 248, 0.12) 0%, rgba(9, 13, 22, 0) 65%);
+  --surface: #0f172a;
+  --surface-raised: #1e293b;
+  --surface-hover: #27364f;
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.16);
+  --line-focus: #38bdf8;
+  --fg: #f8fafc;
+  --fg-strong: #ffffff;
+  --muted: #94a3b8;
+  --muted-dark: #64748b;
+
+  --accent: #38bdf8;
+  --accent-hover: #0ea5e9;
+  --accent-subtle: rgba(56, 189, 248, 0.12);
+  --accent-fg: #090d16;
+
+  --warn: #f59e0b;
+  --warn-bg: rgba(245, 158, 11, 0.09);
+  --warn-border: rgba(245, 158, 11, 0.3);
+  --warn-fg: #fbbf24;
+
+  --success: #10b981;
+  --success-bg: rgba(16, 185, 129, 0.1);
+  --success-border: rgba(16, 185, 129, 0.25);
+
+  --danger: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.1);
+  --danger-border: rgba(239, 68, 68, 0.25);
+
+  --user-bg: #1e293b;
+  --user-fg: #f8fafc;
+  --user-border: rgba(255, 255, 255, 0.12);
+
+  --tool-bg: rgba(15, 23, 42, 0.9);
+  --tool-border: rgba(56, 189, 248, 0.2);
+
+  --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.45);
+  --dock-shadow: 0 -10px 30px -5px rgba(0, 0, 0, 0.6);
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  /* Sober Neutral Slate (Light Mode) */
+  --bg: #f8fafc;
+  --bg-gradient: radial-gradient(circle at 50% -20%, rgba(2, 132, 199, 0.08) 0%, rgba(248, 250, 252, 0) 65%);
+  --surface: #ffffff;
+  --surface-raised: #f1f5f9;
+  --surface-hover: #e2e8f0;
+  --line: #e2e8f0;
+  --line-strong: #cbd5e1;
+  --line-focus: #0284c7;
+  --fg: #0f172a;
+  --fg-strong: #020617;
+  --muted: #64748b;
+  --muted-dark: #94a3b8;
+
+  --accent: #0284c7;
+  --accent-hover: #0369a1;
+  --accent-subtle: rgba(2, 132, 199, 0.08);
+  --accent-fg: #ffffff;
+
+  --warn: #d97706;
+  --warn-bg: #fffbeb;
+  --warn-border: #fde68a;
+  --warn-fg: #b45309;
+
+  --success: #059669;
+  --success-bg: #ecfdf5;
+  --success-border: #a7f3d0;
+
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+
+  --user-bg: #0f172a;
+  --user-fg: #ffffff;
+  --user-border: transparent;
+
+  --tool-bg: #f8fafc;
+  --tool-border: #cbd5e1;
+
+  --card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+  --dock-shadow: 0 -10px 25px -5px rgba(15, 23, 42, 0.05);
   color-scheme: light;
 }
-@media (prefers-color-scheme: dark) {
-  :root { --bg: #121614; --surface: #1a201d; --fg: #e6ece9; --muted: #9aa8a1; --line: #2d3732;
-          --accent: #5ac39b; --accent-fg: #0d1210; --warn-bg: #2e2412; --warn: #f0b75c; color-scheme: dark; }
-}
+
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.55 var(--sans); }
-main { max-width: 780px; margin: 0 auto; padding: 28px 16px 48px; display: grid; gap: 20px; }
-h1 { margin: 0; font-size: 1.6rem; line-height: 1.2; }
-.lede { margin: 6px 0 0; color: var(--muted); max-width: 64ch; }
-.examples { display: flex; flex-wrap: wrap; gap: 8px; }
-.examples button { font: inherit; font-size: .9rem; border: 1px solid var(--line); background: var(--surface);
-  color: var(--fg); border-radius: 999px; padding: 6px 12px; cursor: pointer; text-align: left; }
-.examples button:hover, .examples button:focus-visible { border-color: var(--accent); outline: none; }
-#log { display: grid; gap: 14px; }
-.turn { display: grid; gap: 8px; }
-.question { justify-self: end; background: var(--accent); color: var(--accent-fg); padding: 8px 14px;
-  border-radius: 14px 14px 4px 14px; max-width: 85%; }
-.answer { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 16px;
-  min-width: 0; overflow-wrap: anywhere; }
-.answer table { border-collapse: collapse; display: block; overflow-x: auto; font-size: .9rem; }
-.answer th, .answer td { border-bottom: 1px solid var(--line); padding: 4px 8px; text-align: left; }
-.answer p:first-child { margin-top: 0; } .answer p:last-child { margin-bottom: 0; }
-.tool { font: .8rem/1.4 var(--mono); color: var(--muted); border-left: 2px solid var(--line); padding: 2px 0 2px 10px;
-  white-space: pre-wrap; overflow-wrap: anywhere; }
-.approval { background: var(--warn-bg); color: var(--fg); border-radius: 10px; padding: 12px 14px; display: grid; gap: 8px; }
-.approval strong { color: var(--warn); }
-.approval pre { margin: 0; font: .8rem/1.4 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
-.approval .row { display: flex; gap: 8px; }
-.error { color: var(--warn); }
-form { display: flex; gap: 8px; position: sticky; bottom: 0; padding: 10px 0; background: var(--bg); }
-textarea { flex: 1; min-width: 0; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px;
-  background: var(--surface); color: var(--fg); resize: vertical; min-height: 46px; }
-textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-button.primary, .approval button { font: inherit; border: 0; border-radius: 10px; padding: 0 18px; cursor: pointer;
-  background: var(--accent); color: var(--accent-fg); min-height: 44px; }
-.approval button.secondary { background: transparent; color: var(--fg); border: 1px solid var(--line); }
-button:disabled { opacity: .5; cursor: default; }
-footer { color: var(--muted); font-size: .85rem; display: grid; gap: 4px; }
-a { color: var(--accent); }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--bg);
+  background-image: var(--bg-gradient);
+  background-repeat: no-repeat;
+  color: var(--fg);
+  font: 400 15px/1.6 var(--font-sans);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Institutional Navbar */
+.top-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: rgba(9, 13, 22, 0.88);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+  transition: background-color 0.2s, border-color 0.2s;
+}
+[data-theme="light"] .top-nav {
+  background: rgba(255, 255, 255, 0.9);
+}
+.nav-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.brand-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--fg);
+}
+.brand-icon {
+  width: 24px;
+  height: 24px;
+  color: var(--accent);
+  flex-shrink: 0;
+}
+.brand-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.brand-title span {
+  font-weight: 400;
+  color: var(--accent);
+}
+.brand-pill {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 0 2px var(--success-bg);
+  animation: pulse-dot 2.5s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.7; }
+}
+
+.icon-btn {
+  background: transparent;
+  border: 1px solid var(--line);
+  color: var(--muted);
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.icon-btn:hover {
+  background: var(--surface-raised);
+  color: var(--fg);
+  border-color: var(--line-strong);
+}
+
+/* Layout */
+main {
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 28px 20px 40px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Hero Section */
+.hero {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 22px;
+}
+.hero-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 8px;
+}
+h1 {
+  margin: 0;
+  font-size: 1.85rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.25;
+  color: var(--fg-strong);
+}
+.lede {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 72ch;
+}
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+.feat-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--muted);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+.feat-item svg {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+/* Examples Bar */
+.examples-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.examples-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted-dark);
+}
+.examples {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.examples button {
+  font: inherit;
+  font-size: 0.84rem;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--fg);
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.examples button:hover, .examples button:focus-visible {
+  border-color: var(--accent);
+  background: var(--surface-raised);
+  color: var(--accent);
+  transform: translateY(-1px);
+  outline: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Empty state inside chat log */
+.empty-state {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 24px;
+  display: grid;
+  gap: 16px;
+  box-shadow: var(--card-shadow);
+}
+.empty-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.empty-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.empty-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0;
+  color: var(--fg-strong);
+}
+.empty-desc {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.empty-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+.guide-card {
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: grid;
+  gap: 4px;
+}
+.guide-card strong {
+  font-size: 0.85rem;
+  color: var(--fg-strong);
+}
+.guide-card p {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+/* Conversation Stream Log */
+#log {
+  display: grid;
+  gap: 20px;
+  min-height: 60px;
+}
+.turn {
+  display: grid;
+  gap: 10px;
+  animation: fadeIn 0.25s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* User Message */
+.question {
+  justify-self: end;
+  background: var(--user-bg);
+  color: var(--user-fg);
+  padding: 10px 16px;
+  border-radius: 16px 16px 4px 16px;
+  border: 1px solid var(--user-border);
+  max-width: 82%;
+  font-weight: 500;
+  line-height: 1.5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  word-break: break-word;
+}
+
+/* Agent Answer Card */
+.answer-wrapper {
+  display: grid;
+  gap: 8px;
+}
+.agent-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+.agent-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--accent);
+}
+
+.answer {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 18px 22px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  box-shadow: var(--card-shadow);
+  line-height: 1.65;
+}
+.answer p { margin: 0.75em 0; }
+.answer p:first-child { margin-top: 0; }
+.answer p:last-child { margin-bottom: 0; }
+.answer ul, .answer ol { padding-left: 20px; margin: 0.6em 0; }
+.answer li { margin-bottom: 0.3em; }
+
+/* Markdown Tables */
+.answer table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  margin: 14px 0;
+  font-size: 0.88rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  overflow: hidden;
+  display: table;
+}
+.answer th {
+  background: var(--surface-raised);
+  color: var(--fg-strong);
+  font-weight: 600;
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.answer td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--line);
+  color: var(--fg);
+}
+.answer tr:last-child td { border-bottom: 0; }
+.answer tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
+[data-theme="light"] .answer tr:nth-child(even) td { background: rgba(0, 0, 0, 0.015); }
+.answer tr:hover td { background: var(--surface-raised); }
+
+/* Monospace & Code */
+.answer code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  background: var(--surface-raised);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  color: var(--accent);
+}
+.answer pre {
+  background: #050811;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 16px;
+  overflow-x: auto;
+  font: 0.85rem/1.5 var(--font-mono);
+  color: #e2e8f0;
+  position: relative;
+  margin: 12px 0;
+}
+.answer pre code {
+  background: transparent;
+  padding: 0;
+  border: 0;
+  color: inherit;
+}
+
+/* Tool execution pills */
+.tool {
+  font: 0.8rem/1.5 var(--font-mono);
+  color: var(--muted);
+  background: var(--tool-bg);
+  border: 1px solid var(--tool-border);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+  padding: 8px 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.tool-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--accent-subtle);
+  color: var(--accent);
+  padding: 2px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+/* Human-in-the-Loop Approval Card */
+.approval {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  color: var(--fg);
+  border-radius: 12px;
+  padding: 16px 18px;
+  display: grid;
+  gap: 12px;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.1);
+  animation: fadeIn 0.2s ease-out;
+}
+.approval-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--warn);
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.approval-header svg {
+  flex-shrink: 0;
+}
+.approval-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.84rem;
+}
+.approval-stat-pill {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--warn-border);
+  padding: 4px 10px;
+  border-radius: 6px;
+  display: inline-flex;
+  gap: 6px;
+}
+.approval-stat-pill span { color: var(--muted); }
+.approval-stat-pill strong { color: var(--warn-fg); font-family: var(--font-mono); }
+.approval pre {
+  margin: 0;
+  font: 0.82rem/1.5 var(--font-mono);
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--warn-border);
+  border-radius: 6px;
+  padding: 10px 14px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: #fef3c7;
+}
+.approval .row {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.approval button {
+  font: inherit;
+  font-weight: 500;
+  font-size: 0.88rem;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+}
+.approval button.primary {
+  background: var(--warn);
+  color: #0f172a;
+  font-weight: 600;
+}
+.approval button.primary:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+.approval button.secondary {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--line);
+}
+.approval button.secondary:hover:not(:disabled) {
+  background: var(--surface-raised);
+}
+
+/* Error Banner */
+.error {
+  color: var(--danger);
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Fixed Bottom Chat Form */
+.dock-wrapper {
+  position: sticky;
+  bottom: 0;
+  z-index: 30;
+  background: rgba(9, 13, 22, 0.88);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-top: 1px solid var(--line);
+  padding: 14px 20px 20px;
+  box-shadow: var(--dock-shadow);
+  transition: background-color 0.2s, border-color 0.2s;
+}
+[data-theme="light"] .dock-wrapper {
+  background: rgba(255, 255, 255, 0.92);
+}
+.dock-inner {
+  max-width: 860px;
+  margin: 0 auto;
+}
+form#ask {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  padding: 10px 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+form#ask:focus-within {
+  border-color: var(--line-focus);
+  box-shadow: 0 0 0 3px var(--accent-subtle), 0 4px 20px rgba(0, 0, 0, 0.25);
+}
+.input-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+textarea#message {
+  flex: 1;
+  min-width: 0;
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 6px 4px;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  resize: none;
+  min-height: 44px;
+  max-height: 160px;
+  line-height: 1.5;
+  outline: none;
+}
+textarea#message::placeholder {
+  color: var(--muted-dark);
+}
+
+.dock-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid var(--line);
+  padding-top: 6px;
+  margin-top: 2px;
+}
+.hint-text {
+  font-size: 0.72rem;
+  color: var(--muted-dark);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+kbd {
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 1px 4px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--muted);
+}
+
+button#send {
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.88rem;
+  border: 0;
+  border-radius: 8px;
+  padding: 8px 18px;
+  cursor: pointer;
+  background: var(--accent);
+  color: var(--accent-fg);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.15s ease;
+  min-height: 36px;
+}
+button#send:hover:not(:disabled) {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+}
+button#send:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+.spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  display: inline-block;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Footer */
+footer {
+  color: var(--muted);
+  font-size: 0.82rem;
+  display: grid;
+  gap: 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+  margin-top: 10px;
+}
+footer a {
+  color: var(--accent);
+  text-decoration: none;
+}
+footer a:hover {
+  text-decoration: underline;
+}
+
+/* Streaming indicator */
+.typing-pulse {
+  display: inline-block;
+  width: 8px;
+  height: 15px;
+  vertical-align: -2px;
+  background-color: var(--accent);
+  margin-left: 2px;
+  animation: blink 0.9s infinite;
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@media (max-width: 640px) {
+  main { padding: 20px 14px 40px; gap: 20px; }
+  .status-pill { display: none; }
+  .features-grid { grid-template-columns: 1fr; }
+  .question { max-width: 92%; }
+}
 </style>
 </head>
 <body>
+
+<nav class="top-nav" aria-label="Navegación principal">
+  <div class="nav-inner">
+    <a href="/" class="brand-link">
+      <svg class="brand-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-opacity="0.25" />
+        <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" stroke-opacity="0.5" />
+        <circle cx="12" cy="12" r="2.5" fill="var(--accent)" />
+        <path d="M12 2C17.52 2 22 6.48 22 12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" />
+      </svg>
+      <div class="brand-title">
+        SECOP <span>analyst</span>
+      </div>
+      <span class="brand-pill">CAUCA · SECOP II</span>
+    </a>
+
+    <div class="nav-actions">
+      <div class="status-pill" title="Servicio activo con base de contratos completa">
+        <span class="status-dot"></span>
+        <span>35.718 Contratos (2025–2026)</span>
+      </div>
+
+      <button type="button" class="icon-btn" id="reset-thread-btn" title="Nueva conversación (Reiniciar hilo)" aria-label="Nueva conversación">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+          <path d="M21 3v5h-5"/>
+          <path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+          <path d="M3 21v-5h5"/>
+        </svg>
+      </button>
+
+      <button type="button" class="icon-btn" id="theme-toggle" title="Cambiar tema claro / oscuro" aria-label="Cambiar tema">
+        <svg class="sun-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="5"></circle>
+          <line x1="12" y1="1" x2="12" y2="3"></line>
+          <line x1="12" y1="21" x2="12" y2="23"></line>
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+          <line x1="1" y1="12" x2="3" y2="12"></line>
+          <line x1="21" y1="12" x2="23" y2="12"></line>
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+        <svg class="moon-icon" style="display:none;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+        </svg>
+      </button>
+
+      <a href="https://github.com/0103juan/secop-analyst" class="icon-btn" target="_blank" rel="noopener" title="Repositorio en GitHub" aria-label="Repositorio en GitHub">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+        </svg>
+      </a>
+    </div>
+  </div>
+</nav>
+
 <main>
-  <header>
+  <header class="hero">
+    <div class="hero-tag">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      </svg>
+      Inteligencia Contractual Multi-Agente
+    </div>
     <h1>Contratos públicos del Cauca, en preguntas</h1>
     <p class="lede">Un agente con LangGraph responde sobre 35.718 contratos de SECOP II firmados en el Cauca desde 2025.
       Busca por tema, escribe SQL de solo lectura y cita el id de cada contrato. Las consultas costosas esperan
       tu aprobación antes de correr.</p>
+
+    <div class="features-grid">
+      <div class="feat-item">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        <span>LangGraph ReAct Loop</span>
+      </div>
+      <div class="feat-item">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span>Búsqueda Vectorial + BM25</span>
+      </div>
+      <div class="feat-item">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+        <span>SQL de Solo Lectura</span>
+      </div>
+      <div class="feat-item">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Aprobación Human-in-the-Loop</span>
+      </div>
+    </div>
   </header>
 
-  <div class="examples" aria-label="Preguntas de ejemplo">
-    <button type="button">¿Cuáles son los 5 contratos de mayor valor de la Gobernación del Cauca?</button>
-    <button type="button">Contratos de alimentación escolar en Popayán</button>
-    <button type="button">¿Cuánto se contrató por cada modalidad en 2025?</button>
-    <button type="button">¿Qué proveedores tienen más contratos de obra?</button>
+  <div class="examples-section">
+    <span class="examples-title">Preguntas sugeridas:</span>
+    <div class="examples" aria-label="Preguntas de ejemplo">
+      <button type="button" data-question="¿Cuáles son los 5 contratos de mayor valor de la Gobernación del Cauca?">
+        <span>🏛️</span>
+        <span>¿Cuáles son los 5 contratos de mayor valor de la Gobernación del Cauca?</span>
+      </button>
+      <button type="button" data-question="Contratos de alimentación escolar en Popayán">
+        <span>🥪</span>
+        <span>Contratos de alimentación escolar en Popayán</span>
+      </button>
+      <button type="button" data-question="¿Cuánto se contrató por cada modalidad en 2025?">
+        <span>📊</span>
+        <span>¿Cuánto se contrató por cada modalidad en 2025?</span>
+      </button>
+      <button type="button" data-question="¿Qué proveedores tienen más contratos de obra?">
+        <span>🏗️</span>
+        <span>¿Qué proveedores tienen más contratos de obra?</span>
+      </button>
+      <button type="button" data-question="Contratos de salud en Santander de Quilichao">
+        <span>🏥</span>
+        <span>Contratos de salud en Santander de Quilichao</span>
+      </button>
+    </div>
   </div>
 
-  <section id="log" aria-live="polite"></section>
-
-  <form id="ask">
-    <label for="message" hidden>Tu pregunta</label>
-    <textarea id="message" rows="1" placeholder="Pregunta por entidades, proveedores, valores, temas…" required></textarea>
-    <button class="primary" id="send" type="submit">Preguntar</button>
-  </form>
+  <section id="log" aria-live="polite">
+    <div class="empty-state" id="empty-state">
+      <div class="empty-header">
+        <div class="empty-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+          </svg>
+        </div>
+        <div>
+          <h2 class="empty-title">Observatorio de Contratación Pública</h2>
+          <p class="empty-desc">Escribe una pregunta en lenguaje natural o selecciona un ejemplo superior.</p>
+        </div>
+      </div>
+      <div class="empty-cards">
+        <div class="guide-card">
+          <strong>Filtros y Rankings</strong>
+          <p>Pregunta por entidades, contratistas, valores adjudicados o adiciones presupuestales.</p>
+        </div>
+        <div class="guide-card">
+          <strong>Búsqueda Semántica</strong>
+          <p>Explora contratos por temática: acueductos, vías terciarias, conectividad o salud.</p>
+        </div>
+        <div class="guide-card">
+          <strong>Control de Costos</strong>
+          <p>Las consultas SQL con alto costo computacional pausarán la ejecución solicitando tu aprobación.</p>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <footer>
-    <span>Demo con tope diario de preguntas. Responde Gemini en Vertex AI; los datos son públicos
-      (<a href="https://www.colombiacompra.gov.co/" rel="noopener">Colombia Compra Eficiente</a>).</span>
-    <span>Código, decisiones y pruebas: <a href="https://github.com/0103juan/secop-analyst" rel="noopener">github.com/0103juan/secop-analyst</a></span>
+    <span>Demo pública con tope diario de preguntas. Responde Gemini en Vertex AI; los datos son oficiales y públicos
+      (<a href="https://www.colombiacompra.gov.co/" rel="noopener" target="_blank">Colombia Compra Eficiente</a>).</span>
+    <span>Código, decisiones y pruebas: <a href="https://github.com/0103juan/secop-analyst" rel="noopener" target="_blank">github.com/0103juan/secop-analyst</a></span>
   </footer>
 </main>
+
+<div class="dock-wrapper">
+  <div class="dock-inner">
+    <form id="ask">
+      <label for="message" hidden>Tu pregunta</label>
+      <div class="input-row">
+        <textarea id="message" rows="1" placeholder="Pregunta por entidades, proveedores, valores, temas…" required></textarea>
+        <button class="primary" id="send" type="submit">
+          <span class="btn-text">Preguntar</span>
+          <svg class="send-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
+      </div>
+      <div class="dock-controls">
+        <div class="hint-text">
+          <span><kbd>Enter</kbd> para enviar</span>
+          <span>·</span>
+          <span><kbd>Shift</kbd> + <kbd>Enter</kbd> para salto</span>
+        </div>
+        <div class="hint-text" style="color: var(--muted);">
+          <span>Modelo: Gemini 2.5 Flash en Vertex AI</span>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/15.0.12/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.2.6/purify.min.js"></script>
 <script>
-const thread = crypto.randomUUID();
+let thread = crypto.randomUUID();
 const log = document.getElementById("log");
 const form = document.getElementById("ask");
 const input = document.getElementById("message");
 const send = document.getElementById("send");
+const emptyState = document.getElementById("empty-state");
+const resetBtn = document.getElementById("reset-thread-btn");
+const themeToggle = document.getElementById("theme-toggle");
+
+// Theme Switcher with localStorage persistence (Default: Dark)
+function initTheme() {
+  const saved = localStorage.getItem("secop-theme");
+  const theme = saved || "dark";
+  applyTheme(theme);
+}
+function applyTheme(theme) {
+  document.documentElement.setAttribute("data-theme", theme);
+  localStorage.setItem("secop-theme", theme);
+  const isDark = theme === "dark";
+  const sun = themeToggle.querySelector(".sun-icon");
+  const moon = themeToggle.querySelector(".moon-icon");
+  if (sun && moon) {
+    sun.style.display = isDark ? "block" : "none";
+    moon.style.display = isDark ? "none" : "block";
+  }
+}
+themeToggle.addEventListener("click", () => {
+  const current = document.documentElement.getAttribute("data-theme") || "dark";
+  applyTheme(current === "dark" ? "light" : "dark");
+});
+initTheme();
+
+// Reset thread
+resetBtn.addEventListener("click", () => {
+  if (send.disabled) return;
+  thread = crypto.randomUUID();
+  log.innerHTML = "";
+  if (emptyState) log.append(emptyState);
+  input.value = "";
+  input.focus();
+});
+
+// Auto-expand textarea
+function autoResize() {
+  input.style.height = "auto";
+  input.style.height = Math.min(input.scrollHeight, 160) + "px";
+}
+input.addEventListener("input", autoResize);
 
 function render(markdown) {
   return window.marked && window.DOMPurify ? DOMPurify.sanitize(marked.parse(markdown)) : null;
@@ -105,66 +1060,163 @@ function el(tag, cls, text) {
   return node;
 }
 
+function setSending(isSending) {
+  send.disabled = isSending;
+  const btnText = send.querySelector(".btn-text");
+  const sendIcon = send.querySelector(".send-icon");
+  if (isSending) {
+    if (btnText) btnText.textContent = "Consultando...";
+    if (sendIcon) sendIcon.style.display = "none";
+    if (!send.querySelector(".spinner")) {
+      const sp = el("span", "spinner");
+      send.prepend(sp);
+    }
+  } else {
+    if (btnText) btnText.textContent = "Preguntar";
+    if (sendIcon) sendIcon.style.display = "";
+    const sp = send.querySelector(".spinner");
+    if (sp) sp.remove();
+  }
+}
+
 async function stream(path, body, turn) {
-  send.disabled = true;
+  setSending(true);
+  const wrapper = el("div", "answer-wrapper");
+  const header = el("div", "agent-header");
+  header.innerHTML = `
+    <span class="agent-badge">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>
+      <strong>Analista SECOP</strong>
+    </span>
+    <span>· Respuesta sintetizada</span>
+  `;
   const answer = el("div", "answer");
+  wrapper.append(header, answer);
+
   let text = "";
-  const show = () => { const html = render(text); html === null ? (answer.textContent = text) : (answer.innerHTML = html); };
+  let pulse = el("span", "typing-pulse");
+
+  const show = () => {
+    const html = render(text);
+    if (html === null) {
+      answer.textContent = text;
+    } else {
+      answer.innerHTML = html;
+      answer.append(pulse);
+    }
+  };
+
   try {
-    const response = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const response = await fetch(path, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
     if (!response.ok) {
       const detail = await response.json().catch(() => ({}));
-      turn.append(el("div", "answer error", detail.detail || `El servicio respondió ${response.status}.`));
+      turn.append(el("div", "error", detail.detail || `El servicio respondió ${response.status}.`));
       return;
     }
+
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
+
     for (;;) {
       const { value, done } = await reader.read();
       if (done) break;
       buffer += decoder.decode(value, { stream: true });
       let cut;
       while ((cut = buffer.indexOf("\n\n")) >= 0) {
-        const block = buffer.slice(0, cut); buffer = buffer.slice(cut + 2);
+        const block = buffer.slice(0, cut);
+        buffer = buffer.slice(cut + 2);
         const name = (block.match(/^event: (.*)$/m) || [])[1];
         const data = JSON.parse((block.match(/^data: (.*)$/m) || [, "null"])[1]);
-        if (name === "token") { if (!answer.isConnected) turn.append(answer); text += data; show(); }
-        else if (name === "tool") {
+
+        if (name === "token") {
+          if (!wrapper.isConnected) {
+            turn.append(wrapper);
+          }
+          text += data;
+          show();
+        } else if (name === "tool") {
+          const isSql = data.name === "query_contracts";
           const args = data.args.sql || data.args.query || JSON.stringify(data.args);
-          turn.append(el("div", "tool", (data.name === "query_contracts" ? "SQL  " : "búsqueda  ") + args));
+          const toolEl = el("div", "tool");
+          const tag = el("span", "tool-tag", isSql ? "SQL" : "Búsqueda");
+          const code = el("span", "", args);
+          toolEl.append(tag, code);
+          turn.append(toolEl);
+        } else if (name === "approval") {
+          approval(turn, data);
+        } else if (name === "done") {
+          if (pulse.parentNode) pulse.remove();
+        } else if (name === "error") {
+          if (pulse.parentNode) pulse.remove();
+          turn.append(el("div", "error", `Falló la consulta (traza ${data.trace_id}).`));
         }
-        else if (name === "approval") approval(turn, data);
-        else if (name === "error") turn.append(el("div", "answer error", `Falló la consulta (traza ${data.trace_id}).`));
       }
     }
   } catch (error) {
-    turn.append(el("div", "answer error", "No se pudo conectar con el servicio."));
+    if (pulse.parentNode) pulse.remove();
+    turn.append(el("div", "error", "No se pudo conectar con el servicio. Verifica tu conexión o intenta en unos momentos."));
   } finally {
-    send.disabled = false;
+    if (pulse.parentNode) pulse.remove();
+    setSending(false);
+    window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
   }
 }
 
 function approval(turn, data) {
   const box = el("div", "approval");
-  const title = el("div");
-  title.append(el("strong", "", "Consulta costosa. "),
-               document.createTextNode(`El planificador estima ${Math.round(data.cost).toLocaleString("es-CO")}; el límite es ${Math.round(data.limit).toLocaleString("es-CO")}. ¿La corro?`));
+
+  const header = el("div", "approval-header");
+  header.innerHTML = `
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/>
+      <line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    <span>Aprobación requerida: Consulta SQL con alto costo computacional</span>
+  `;
+
+  const stats = el("div", "approval-stats");
+  const costPill = el("div", "approval-stat-pill");
+  costPill.innerHTML = `<span>Estimación:</span> <strong>${Math.round(data.cost).toLocaleString("es-CO")}</strong>`;
+  const limitPill = el("div", "approval-stat-pill");
+  limitPill.innerHTML = `<span>Límite seguro:</span> <strong>${Math.round(data.limit).toLocaleString("es-CO")}</strong>`;
+  stats.append(costPill, limitPill);
+
+  const sqlPre = el("pre", "", data.sql);
+
   const row = el("div", "row");
-  const yes = el("button", "", "Aprobar"); yes.type = "button";
-  const no = el("button", "secondary", "Rechazar"); no.type = "button";
-  const decide = (approve) => { yes.disabled = no.disabled = true; stream("/resume", { thread_id: thread, approve }, turn); };
-  yes.onclick = () => decide(true); no.onclick = () => decide(false);
+  const yes = el("button", "primary", "Aprobar y ejecutar");
+  yes.type = "button";
+  const no = el("button", "secondary", "Rechazar consulta");
+  no.type = "button";
+
+  const decide = (approve) => {
+    yes.disabled = no.disabled = true;
+    stream("/resume", { thread_id: thread, approve }, turn);
+  };
+  yes.onclick = () => decide(true);
+  no.onclick = () => decide(false);
+
   row.append(yes, no);
-  box.append(title, el("pre", "", data.sql), row);
+  box.append(header, stats, sqlPre, row);
   turn.append(box);
 }
 
 function ask(question) {
+  if (emptyState && emptyState.parentNode) {
+    emptyState.remove();
+  }
   const turn = el("div", "turn");
   turn.append(el("div", "question", question));
   log.append(turn);
   stream("/chat", { thread_id: thread, message: question }, turn);
+  window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" });
 }
 
 form.addEventListener("submit", (event) => {
@@ -172,13 +1224,25 @@ form.addEventListener("submit", (event) => {
   const question = input.value.trim();
   if (!question || send.disabled) return;
   input.value = "";
+  autoResize();
   ask(question);
 });
+
 input.addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); form.requestSubmit(); }
+  if (event.key === "Enter" && !event.shiftKey) {
+    event.preventDefault();
+    form.requestSubmit();
+  }
 });
+
 document.querySelectorAll(".examples button").forEach((button) =>
-  button.addEventListener("click", () => { if (!send.disabled) ask(button.textContent); }));
+  button.addEventListener("click", () => {
+    if (!send.disabled) {
+      const text = button.dataset.question || button.querySelector("span:last-child")?.textContent || button.textContent;
+      ask(text.trim());
+    }
+  })
+);
 </script>
 </body>
 </html>
