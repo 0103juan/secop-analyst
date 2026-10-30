@@ -23,7 +23,8 @@ CREATE TABLE IF NOT EXISTS contracts (
 CREATE INDEX IF NOT EXISTS contracts_embedding ON contracts USING hnsw (embedding vector_cosine_ops);
 CREATE INDEX IF NOT EXISTS contracts_object_tsv ON contracts USING gin (object_tsv);
 CREATE INDEX IF NOT EXISTS contracts_entity_signed ON contracts (entity_nit, signed_on);
-CREATE INDEX IF NOT EXISTS contracts_updated ON contracts (updated_at);
+-- No index on updated_at: nothing queries it (the sync's cursor is in sync_state). Dropped where it was created.
+DROP INDEX IF EXISTS contracts_updated;
 
 -- Long-term memory: what the agent keeps about a user after it proved useful more than once.
 CREATE TABLE IF NOT EXISTS memories (
@@ -36,6 +37,8 @@ CREATE TABLE IF NOT EXISTS memories (
     last_used_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS memories_user ON memories (user_id, last_used_at);
+-- Demotion filters on last_used_at across all users, which the index above (user_id first) cannot serve.
+CREATE INDEX IF NOT EXISTS memories_last_used ON memories (last_used_at);
 
 -- Who may call the API: one row per key, kept as a hash (keys.py).
 CREATE TABLE IF NOT EXISTS api_keys (
