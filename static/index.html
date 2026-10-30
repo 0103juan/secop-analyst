@@ -136,13 +136,18 @@ body {
   background: rgba(255, 255, 255, 0.9);
 }
 .nav-inner {
-  max-width: 860px;
+  max-width: 960px;
   margin: 0 auto;
-  padding: 12px 20px;
+  padding: 10px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
+}
+.nav-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 .brand-link {
   display: flex;
@@ -179,6 +184,82 @@ body {
   background: var(--accent-subtle);
   color: var(--accent);
   border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+/* Suite Cross-Navigation Links */
+.suite-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.suite-links a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 5px 10px;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.suite-links a:hover {
+  color: var(--fg);
+  background: var(--surface-raised);
+}
+.suite-links a.active {
+  color: var(--accent);
+  background: var(--accent-subtle);
+  font-weight: 600;
+}
+.nav-active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.app-switcher-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--fg);
+  text-decoration: none;
+  background: var(--surface-raised);
+  border: 1px solid var(--line);
+  padding: 5px 10px;
+  border-radius: 7px;
+  transition: all 0.15s ease;
+}
+.app-switcher-btn:hover {
+  border-color: var(--line-strong);
+  background: var(--surface-hover);
+  color: var(--accent);
+}
+
+/* Embedded Microfrontend Mode */
+body.is-embedded .top-nav {
+  display: none !important;
+}
+body.is-embedded main {
+  padding-top: 14px;
+  padding-bottom: 20px;
+}
+body.is-embedded footer {
+  display: none !important;
+}
+body.is-embedded {
+  background: transparent !important;
+}
+
+@media (max-width: 900px) {
+  .suite-links { display: none; }
 }
 
 .nav-actions {
@@ -818,20 +899,45 @@ footer a:hover {
 
 <nav class="top-nav" aria-label="Navegación principal">
   <div class="nav-inner">
-    <a href="/" class="brand-link">
-      <svg class="brand-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-opacity="0.25" />
-        <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" stroke-opacity="0.5" />
-        <circle cx="12" cy="12" r="2.5" fill="var(--accent)" />
-        <path d="M12 2C17.52 2 22 6.48 22 12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" />
-      </svg>
-      <div class="brand-title">
-        SECOP <span>analyst</span>
-      </div>
-      <span class="brand-pill">CAUCA · SECOP II</span>
-    </a>
+    <div class="nav-left">
+      <a href="/" class="brand-link" title="Inicio de SECOP Analyst">
+        <svg class="brand-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" stroke-opacity="0.25" />
+          <circle cx="12" cy="12" r="6" stroke="currentColor" stroke-width="2" stroke-opacity="0.5" />
+          <circle cx="12" cy="12" r="2.5" fill="var(--accent)" />
+          <path d="M12 2C17.52 2 22 6.48 22 12" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" />
+        </svg>
+        <div class="brand-title">
+          SECOP <span>analyst</span>
+        </div>
+        <span class="brand-pill">CAUCA · SECOP II</span>
+      </a>
+
+      <ul class="suite-links" aria-label="Ecosistema SECOP">
+        <li><a href="https://secop-alertas-271042683183.us-central1.run.app/contratos" title="Catálogo y búsqueda de contratos">Contratos</a></li>
+        <li><a href="https://secop-alertas-271042683183.us-central1.run.app/lecturas/fraccionamiento" title="Detección de fraccionamiento">Fraccionamiento</a></li>
+        <li><a href="https://secop-alertas-271042683183.us-central1.run.app/lecturas/atipicos" title="Análisis de contratos atípicos">Atípicos</a></li>
+        <li><a href="https://secop-alertas-271042683183.us-central1.run.app/alertas" title="Suscripciones y alertas activas">Mis alertas</a></li>
+        <li>
+          <a href="/" class="active" aria-current="page" title="Consultas con Agente LangGraph">
+            <span>Analista AI</span>
+            <span class="nav-active-dot"></span>
+          </a>
+        </li>
+      </ul>
+    </div>
 
     <div class="nav-actions">
+      <a href="https://secop-alertas-271042683183.us-central1.run.app/" class="app-switcher-btn" title="Ir al Observatorio SECOP Alertas">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="3" width="7" height="7"></rect>
+          <rect x="14" y="3" width="7" height="7"></rect>
+          <rect x="14" y="14" width="7" height="7"></rect>
+          <rect x="3" y="14" width="7" height="7"></rect>
+        </svg>
+        <span>Observatorio</span>
+      </a>
+
       <div class="status-pill" title="Servicio activo con base de contratos completa">
         <span class="status-dot"></span>
         <span>35.718 Contratos (2025–2026)</span>
@@ -1009,10 +1115,18 @@ const emptyState = document.getElementById("empty-state");
 const resetBtn = document.getElementById("reset-thread-btn");
 const themeToggle = document.getElementById("theme-toggle");
 
+// Embedded mode check
+const urlParams = new URLSearchParams(window.location.search);
+const isEmbedded = urlParams.get('embedded') === 'true' || window.self !== window.top;
+if (isEmbedded) {
+  document.body.classList.add('is-embedded');
+}
+
 // Theme Switcher with localStorage persistence (Default: Dark)
 function initTheme() {
+  const urlTheme = urlParams.get('theme');
   const saved = localStorage.getItem("secop-theme");
-  const theme = saved || "dark";
+  const theme = urlTheme || saved || "dark";
   applyTheme(theme);
 }
 function applyTheme(theme) {
@@ -1031,6 +1145,13 @@ themeToggle.addEventListener("click", () => {
   applyTheme(current === "dark" ? "light" : "dark");
 });
 initTheme();
+
+// Listen to postMessage from host application (secop-alertas microfrontend shell)
+window.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "THEME_CHANGE" && event.data.theme) {
+    applyTheme(event.data.theme);
+  }
+});
 
 // Reset thread
 resetBtn.addEventListener("click", () => {
